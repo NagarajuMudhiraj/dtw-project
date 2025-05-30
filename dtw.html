@@ -1,0 +1,870 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>DTW - Design Tool Workshop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --main-bg: #f4f8ff;
+      --card-bg: #ffffff;
+      --primary: #6a11cb;
+      --primary-dark: #2575fc;
+      --dark-bg: #101928;
+      --light-text: #ffffff;
+      --accent: #00d1b2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background: var(--main-bg);
+      color: #333;
+      transition: background 0.4s, color 0.4s;
+      position: relative;
+      -webkit-text-size-adjust: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #a1c4fd, #c2e9fb);
+      background-size: 400% 400%;
+      z-index: -1;
+      animation: bgAnimation 15s ease infinite;
+      opacity: 0.2;
+    }
+
+    header {
+      background: linear-gradient(to right, var(--primary), var(--primary-dark));
+      color: var(--light-text);
+      padding: 20px;
+      text-align: center;
+      animation: slideDown 1s ease;
+      position: relative;
+    }
+
+    header h1 {
+      font-size: clamp(20px, 5vw, 32px);
+      margin: 0;
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 15px;
+    }
+
+    nav {
+      background: #1a2238;
+      display: flex;
+      justify-content: center;
+      padding: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox */
+    }
+
+    nav::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Edge */
+    }
+
+    nav button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: clamp(14px, 3vw, 16px);
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s ease, color 0.3s;
+      padding: 12px 16px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    nav button:hover, nav button:focus {
+      color: var(--accent);
+      transform: scale(1.1);
+      outline: none;
+    }
+
+    .toggle-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      z-index: 10;
+      font-size: 14px;
+    }
+
+    section {
+      display: none;
+      padding: 20px 0;
+      animation: fadeIn 0.6s ease-in-out;
+      width: 100%;
+    }
+
+    section.active {
+      display: block;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 40px 20px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      animation: popIn 0.8s ease;
+      margin: 0 auto;
+      max-width: 800px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+    .hero h2 {
+      font-size: clamp(24px, 5vw, 32px);
+      margin-bottom: 15px;
+      word-wrap: break-word;
+    }
+
+    .typing {
+      font-size: clamp(16px, 4vw, 20px);
+      color: var(--primary-dark);
+      height: 30px;
+      margin: 15px 0;
+    }
+
+    .btn-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: clamp(14px, 3vw, 16px);
+      transition: 0.3s;
+      display: inline-block;
+      text-decoration: none;
+      text-align: center;
+      min-width: 120px;
+    }
+
+    .btn:hover, .btn:focus {
+      background: var(--primary-dark);
+      transform: scale(1.05);
+      outline: none;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+      -webkit-appearance: none;
+      transition: border 0.3s ease;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .experiment-card {
+      background: var(--card-bg);
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      animation: fadeInUp 0.5s ease;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .experiment-card h3 {
+      font-size: clamp(18px, 4vw, 22px);
+      margin-bottom: 10px;
+      color: var(--primary-dark);
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: var(--dark-bg);
+      color: white;
+      margin-top: auto;
+      animation: slideUp 1s ease;
+    }
+
+    .socials {
+      margin: 15px 0;
+    }
+
+    .socials a {
+      margin: 0 10px;
+      font-size: 24px;
+      color: var(--primary-dark);
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+
+    .socials a:hover {
+      transform: scale(1.2);
+    }
+
+    /* Section Headings */
+    section h2 {
+      text-align: center;
+      font-size: clamp(24px, 5vw, 32px);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      position: relative;
+    }
+
+    section h2::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: var(--primary);
+    }
+
+    /* Form Container */
+    #expForm {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    /* Loading animation */
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background-color: rgba(255, 255, 255, 0.8);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      font-weight: bold;
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    .spinner {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid var(--primary);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Tutorials Section */
+    .tutorial-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tutorial-btn {
+      background: var(--primary);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+
+    .tutorial-btn:hover {
+      background: var(--primary-dark);
+      transform: scale(1.05);
+    }
+
+    #tutorialContent {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      transition: all 0.5s ease;
+    }
+
+    #tutorialContent.hidden {
+      display: none;
+    }
+
+    #tutorialTitle {
+      font-size: clamp(18px, 4vw, 24px);
+      color: var(--primary-dark);
+      margin-bottom: 10px;
+    }
+
+    #tutorialDescription {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    #tutorialLink {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--primary);
+      text-decoration: underline;
+      transition: color 0.3s ease;
+    }
+
+    #tutorialLink:hover {
+      color: var(--primary-dark);
+    }
+
+    /* Contact Section */
+    #contact p {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    /* Color theme transitions */
+    section, .hero, .experiment-card, #expForm, #tutorialContent {
+      transition: background 0.4s, color 0.4s;
+    }
+
+    /* Dark Mode */
+    .dark-mode {
+      --main-bg: #0f1117;
+      --card-bg: #1e2630;
+      color: #eaeaea;
+    }
+
+    .dark-mode .toggle-btn {
+      background: #2c3e50;
+    }
+
+    .dark-mode #loadingOverlay {
+      background-color: rgba(15, 17, 23, 0.8);
+      color: #eaeaea;
+    }
+
+    .dark-mode input, .dark-mode textarea {
+      background: #2c3e50;
+      color: #eaeaea;
+      border-color: #4a5568;
+    }
+
+    .dark-mode input::placeholder, .dark-mode textarea::placeholder {
+      color: #a0aec0;
+    }
+
+    /* Animations */
+    @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
+    @keyframes fadeInUp { from {transform: translateY(20px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
+    @keyframes slideDown { from {transform: translateY(-20px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
+    @keyframes slideUp { from {transform: translateY(20px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
+    @keyframes popIn { 0% {transform: scale(0.95); opacity: 0;} 100% {transform: scale(1); opacity: 1;} }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes bgAnimation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Special text styling */
+    #about h2 {
+      background: linear-gradient(90deg, #00c9ff, #92fe9d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #experiments h2 {
+      background: linear-gradient(90deg, #f7971e, #ffd200);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #tutorials h2 {
+      background: linear-gradient(90deg, #43cea2, #185a9d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #feedback h2 {
+      background: linear-gradient(90deg, #fc466b, #3f5efb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #contact h2 {
+      background: linear-gradient(90deg, #ff6a00, #ee0979);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Media Queries for different screen sizes */
+    @media screen and (min-width: 768px) {
+      .toggle-btn {     
+        top: 20px;
+        right: 20px;
+        padding: 10px 15px;
+        font-size: 16px;
+      }
+
+      section {
+        padding: 30px 0;
+      }
+
+      .hero {
+        padding: 60px 30px;
+      }
+      
+      .experiment-card {
+        padding: 25px;
+      }
+      
+      #expForm {
+        padding: 30px;
+      }
+    }
+
+    @media screen and (min-width: 1024px) {
+      main {
+        padding: 0 30px;
+      }
+      
+      nav button {
+        padding: 15px 20px;
+      }
+      
+      .btn-container {
+        gap: 15px;
+      }
+    }
+
+    @media screen and (max-width: 480px) {
+      .toggle-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      
+      .hero {
+        padding: 30px 15px;
+      }
+      
+      .experiment-card {
+        padding: 15px;
+      }
+      
+      .tutorial-btn {
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+      
+      nav button {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="toggle-btn" onclick="toggleDarkMode()">🌙 Toggle Mode</button>
+  <header><h1>Design Tool Workshop (DTW)</h1></header>
+
+  <nav>
+    <button onclick="showSection('home')">Home</button>
+    <button onclick="showSection('about')">About</button>
+    <button onclick="showSection('experiments')">Experiments</button>
+    <button onclick="showSection('tutorials')">Tutorials</button>
+    <button onclick="showSection('feedback')">Feedback</button>
+    <button onclick="showSection('contact')">Contact</button>
+  </nav>
+
+  <main>
+    <section id="home" class="active">
+      <div class="hero">
+        <h2>Welcome to DTW!</h2>
+        <div class="typing" id="typing"></div>
+        <div class="btn-container">
+          <a href="#" class="btn" onclick="showSection('experiments'); return false;">Explore Experiments</a>
+          <a href="#" class="btn" onclick="showSection('tutorials'); return false;">Watch Tutorials</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <h2>📘 About DTW</h2>
+      <div class="experiment-card">
+        <p>This tool helps students interactively learn and manage design experiments. The Design Tool Workshop platform provides resources for students to explore various design tools, track their experiments, and share their work with peers.</p>
+        <p>Our mission is to make design education accessible and engaging for students of all skill levels.</p>
+      </div>
+    </section>
+
+    <section id="experiments">
+      <h2>🧪 Experiments</h2>
+      <div class="experiment-card">
+        <p>Manage your experiments here. Create, edit, and track your design experiments in one place.</p>
+      </div>
+      <form id="expForm">
+        <input type="text" id="expTitle" placeholder="Experiment Title" required />
+        <textarea id="expDesc" placeholder="Experiment Description" required></textarea>
+        <input type="file" id="expFile" accept=".pdf,.doc,.png,.jpg,.jpeg,.txt,.zip" />
+        <button type="submit" class="btn">Add Experiment</button>
+      </form>
+      <div id="experimentList"></div>
+    </section>
+
+    <section id="tutorials">
+      <h2>🎓 Tutorials</h2>
+      <div class="tutorial-list">
+        <button class="tutorial-btn" onclick="showTutorial('co1')">CO1 - HTML</button>
+        <button class="tutorial-btn" onclick="showTutorial('co2')">CO2 - Overleaf</button>
+        <button class="tutorial-btn" onclick="showTutorial('co3')">CO3 - Delightex</button>
+        <button class="tutorial-btn" onclick="showTutorial('co4')">CO4 - Fusion 360</button>
+      </div>
+      <div id="tutorialContent" class="hidden">
+        <h3 id="tutorialTitle"></h3>
+        <p id="tutorialDescription"></p>
+        <a id="tutorialLink" href="#" target="_blank" class="hidden">Go to Tutorial</a>
+      </div>
+    </section>
+
+    <section id="feedback">
+      <h2>💬 Community Feedback</h2>
+      <div class="experiment-card">
+        <p>Share your thoughts and view comments from others. Feedback helps us grow!</p>
+        <textarea id="feedbackText" placeholder="Share your thoughts on DTW..."></textarea>
+        <button class="btn" onclick="submitFeedback()">Submit Feedback</button>
+        <div id="feedbackList"></div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <h2>📞 Contact Us</h2>
+      <div class="experiment-card">
+        <p>Email: nagaraju20507@gmail.com</p>
+        <p>Mobile no: 6300945793</p>
+        <div class="socials">
+          <a href="#">📘</a>
+          <a href="#">🐦</a>
+          <a href="#">📸</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>&copy; 2025 DTW | Designed by NAGARAJU MUDHIRAJ</footer>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    // DTW website functions
+    const sections = document.querySelectorAll("section");
+
+    function showSection(id) {
+      const overlay = document.getElementById("loadingOverlay");
+      overlay.innerHTML = `
+        <div class="spinner"></div>
+        <div style="margin-top: 10px;">Loading ${id.charAt(0).toUpperCase() + id.slice(1)}...</div>
+      `;
+      overlay.style.display = "flex";
+
+      setTimeout(() => {
+        sections.forEach(sec => sec.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+        window.scrollTo({top: 0, behavior: 'smooth'});
+        overlay.innerHTML = `<div class="spinner"></div>`;
+        overlay.style.display = "none";
+      }, 400);
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+      localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+    }
+
+    // Check for saved dark mode preference
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark-mode");
+    }
+
+    const typingText = ["Learn. Design. Build.", "Fusion 360, Canva, Figma", "Create Your Imagination"];
+    let i = 0, j = 0;
+    const typingDiv = document.getElementById("typing");
+
+    function type() {
+      if (typingDiv) {
+        typingDiv.innerHTML = typingText[i].substring(0, j);
+        j++;
+        if (j > typingText[i].length) {
+          j = 0;
+          i = (i + 1) % typingText.length;
+          setTimeout(type, 1000);
+        } else {
+          setTimeout(type, 100);
+        }
+      }
+    }
+
+    let experiments = JSON.parse(localStorage.getItem("experiments")) || [];
+    const form = document.getElementById("expForm");
+    const titleInput = document.getElementById("expTitle");
+    const descInput = document.getElementById("expDesc");
+    const fileInput = document.getElementById("expFile");
+    const list = document.getElementById("experimentList");
+
+    function displayExperiments() {
+      if (!list) return;
+      
+      list.innerHTML = "";
+      
+      if (experiments.length === 0) {
+        list.innerHTML = "<div class='experiment-card'>No experiments yet. Add your first experiment above!</div>";
+        return;
+      }
+      
+      experiments.forEach((exp, index) => {
+        const card = document.createElement("div");
+        card.className = "experiment-card";
+        
+        let fileInfoHTML = "";
+        if (exp.fileData) {
+          try {
+            const fileType = exp.fileData.split(";")[0].split(":")[1] || "unknown"; // e.g., "application/pdf"
+            const fileExtension = fileType.split("/")[1] || "file"; // e.g., "pdf", "jpeg"
+            const fileName = `${exp.title.replace(/\s+/g, "_") || "experiment"}.${fileExtension}`;
+            fileInfoHTML = `
+              <p><strong>Uploaded File:</strong> ${fileName} (${fileType})</p>
+              <div class="btn-container">
+                <a class="btn" href="${exp.fileData}" download="${fileName}">Download</a>
+              </div>
+            `;
+          } catch (e) {
+            // Fallback if we can't parse file data
+            fileInfoHTML = `<a class="btn" href="${exp.fileData}" download>Download File</a>`;
+          }
+        }
+        
+        card.innerHTML = `
+          <h3>${exp.title}</h3>
+          <p>${exp.description}</p>
+          ${fileInfoHTML}
+          <div class="btn-container">
+            <button class="btn" style="background:#e74c3c;" onclick="deleteExperiment(${index})">Delete</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function setupForm() {
+      if (!form) return;
+      
+      form.onsubmit = function (e) {
+        e.preventDefault();
+        const title = titleInput.value.trim();
+        const description = descInput.value.trim();
+        const file = fileInput.files[0];
+
+        if (!title || !description) {
+          alert("Please fill both title and description fields!");
+          return;
+        }
+
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function () {
+            const fileData = reader.result;
+            saveExperiment(title, description, fileData);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          saveExperiment(title, description, null);
+        }
+
+        form.reset();
+      };
+    }
+
+    function saveExperiment(title, description, fileData) {
+      if (form.dataset.hasOwnProperty("editingIndex")) {
+        const index = parseInt(form.dataset.editingIndex);
+        experiments[index] = { title, description, fileData };
+        delete form.dataset.editingIndex;
+      } else {
+        experiments.push({ title, description, fileData });
+      }
+
+      localStorage.setItem("experiments", JSON.stringify(experiments));
+      displayExperiments();
+    }
+
+    function deleteExperiment(index) {
+      if (confirm("Are you sure you want to delete this experiment?")) {
+        experiments.splice(index, 1);
+        localStorage.setItem("experiments", JSON.stringify(experiments));
+        displayExperiments();
+      }
+    }
+
+    const tutorials = {
+      co1: {
+        title: "CO1 - HTML (W3Schools)",
+        description: "Learn HTML basics with examples and hands-on tutorials. Perfect for beginners who want to start creating web pages.",
+        link: "https://www.w3schools.com/html/"
+      },
+      co2: {
+        title: "CO2 - LaTeX using Overleaf",
+        description: "Practice LaTeX for report and document writing in Overleaf. Create professional-looking documents with proper formatting.",
+        link: "https://www.overleaf.com/"
+      },
+      co3: {
+        title: "CO3 - 3D & Coding with Delightex",
+        description: "Explore beginner-friendly 3D design and coding using Delightex. Learn to create interactive 3D models and visualizations.",
+        link: "https://www.delightex.com/"
+      },
+      co4: {
+        title: "CO4 - Fusion 360",
+        description: "Fusion 360 is used for 3D design, modeling, and simulation. Learn advanced CAD techniques for product design and manufacturing.",
+        link: "https://www.autodesk.com/products/fusion-360/overview"
+      }
+    };
+    
+    function showTutorial(coKey) {
+      const tutorial = tutorials[coKey];
+      const content = document.getElementById("tutorialContent");
+      const titleElement = document.getElementById("tutorialTitle");
+      const descElement = document.getElementById("tutorialDescription");
+      const linkElement = document.getElementById("tutorialLink");
+      
+      if (tutorial && content && titleElement && descElement && linkElement) {
+        titleElement.textContent = tutorial.title;
+        descElement.textContent = tutorial.description;
+        
+        if (tutorial.link) {
+          linkElement.href = tutorial.link;
+          linkElement.classList.remove("hidden");
+        } else {
+          linkElement.classList.add("hidden");
+        }
+        
+        content.classList.remove("hidden");
+        
+        // Ensure it's visible by scrolling to it
+        setTimeout(() => {
+          content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    }
+
+    // Feedback functionality
+    function submitFeedback() {
+      const feedbackText = document.getElementById("feedbackText");
+      const feedbackList = document.getElementById("feedbackList");
+      
+      if (feedbackText && feedbackList && feedbackText.value.trim()) {
+        const feedbackItem = document.createElement("div");
+        feedbackItem.className = "experiment-card";
+        feedbackItem.innerHTML = `
+          <p>${feedbackText.value}</p>
+          <p><small>Submitted on ${new Date().toLocaleDateString()}</small></p>
+        `;
+        feedbackList.prepend(feedbackItem);
+        feedbackText.value = "";
+        
+        // Save feedback to local storage if desired
+        // This is just a placeholder, actual implementation would store feedback
+        alert("Thank you for your feedback!");
+      } else if (feedbackText) {
+        alert("Please enter your feedback before submitting");
+      }
+    }
+
+    // Initialize the application
+    window.addEventListener('DOMContentLoaded', function() {
+      displayExperiments();
+      setupForm();
+      type();
+      
+      // Handle back button and navigation
+      window.addEventListener('popstate', function() {
+        const hash = window.location.hash.replace('#', '');
+        if (hash && document.getElementById(hash)) {
+          showSection(hash);
+        }
+      });
+      
+      // Check for initial hash
+      const initialHash = window.location.hash.replace('#', '');
+      if (initialHash && document.getElementById(initialHash)) {
+        showSection(initialHash);
+      }
+      
+      // Add touch event listeners for better mobile experience
+      const navButtons = document.querySelectorAll('nav button');
+      navButtons.forEach(btn => {
+        btn.addEventListener('touchstart', function() {
+          this.style.opacity = '0.7';
+        });
+        btn.addEventListener('touchend', function() {
+          this.style.opacity = '1';
+        });
+      });
+    });
+  </script>
+</body>
+</html>
